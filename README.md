@@ -12,9 +12,9 @@ It was tested on Window and is using multi-threading on 2 stages to speed up.
 Please give me star if this project was helpful to your startup project. :)
 
 # Dependencies
-poppler-0.68.0
-Anaconda3-2020.11-Windows-x86_64.exe
-tesseract-ocr-w64-setup-v5.1.0.20220510.exe
+- poppler-0.68.0
+- Anaconda3-2020.11-Windows-x86_64.exe
+- tesseract-ocr-w64-setup-v5.1.0.20220510.exe
 
 # Installing
 - Extract poppler-0.68.0 and copy it into C:\Program Files\
