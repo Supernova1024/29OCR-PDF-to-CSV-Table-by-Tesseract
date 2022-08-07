@@ -1,0 +1,184 @@
+import cv2
+import numpy as np
+import time
+import csv
+import pytesseract
+import os
+import threading
+from PIL import Image, ImageChops
+## Init
+global thread_kill_flags
+input_folder = "pdf_img/"
+output_folder = "output_img/"
+out_csv = "table_1.csv"
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
+def img_preprocessing(img):
+    resizeimg = cv2.resize(img, None, fx=1.5, fy=1.2)
+    kernel = np.ones((3, 3), np.uint8)
+    erodeimg = cv2.erode(resizeimg, kernel, iterations=3)
+    dilateimg = cv2.dilate(erodeimg, kernel, iterations=2)
+    blur_img = cv2.threshold(cv2.medianBlur(dilateimg, 3), 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+    return blur_img
+
+
+def caculate_time_difference(start_milliseconds, end_milliseconds, filename):
+    if filename == 'total':
+        diff_milliseconds = int(end_milliseconds) - int(start_milliseconds)
+        seconds=(diff_milliseconds / 1000) % 60
+        minutes=(diff_milliseconds/(1000*60))%60
+        hours=(diff_milliseconds/(1000*60*60))%24
+        print("Total run time", hours,":",minutes,":",seconds)
+    else:
+        diff_milliseconds = int(end_milliseconds) - int(start_milliseconds)
+        seconds=(diff_milliseconds / 1000) % 60
+        print(seconds, "s", filename)
+
+
+def sort_contours(cnts, method="left-to-right"):
+    # initialize the reverse flag and sort index
+    reverse = False
+    i = 0
+
+    # handle if we need to sort in reverse
+    if method == "right-to-left" or method == "bottom-to-top":
+        reverse = True
+
+    # handle if we are sorting against the y-coordinate rather than
+    # the x-coordinate of the bounding box
+    if method == "top-to-bottom" or method == "bottom-to-top":
+        i = 1
+
+    # construct the list of bounding boxes and sort them from top to
+    # bottom
+    boundingBoxes = [cv2.boundingRect(c) for c in cnts]
+    (cnts, boundingBoxes) = zip(*sorted(zip(cnts, boundingBoxes),
+                                        key=lambda b: b[1][i], reverse=reverse))
+
+    # return the list of sorted contours and bounding boxes
+    return (cnts, boundingBoxes)
+
+
+#Functon for extracting the box
+def box_extraction(img_for_box_extraction_path, cropped_dir_path):
+    filename_no_xtensn = img_for_box_extraction_path.split(".")[0]
+    filename_no_folder = filename_no_xtensn.split(input_folder)[1]
+    img = cv2.imread(img_for_box_extraction_path, 0)  # Read the image
+    img1 = cv2.imread(img_for_box_extraction_path)  # Read the image
+
+    Cimg_gray_para = [3, 3, 0]
+    Cimg_blur_para = [150, 255]
+
+    gray_img = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+    blurred_img = cv2.GaussianBlur(gray_img, (Cimg_gray_para[0], Cimg_gray_para[1]), Cimg_gray_para[2])
+    (thresh, img_bin) = cv2.threshold(blurred_img, 200, 255,
+                                      cv2.THRESH_BINARY | cv2.THRESH_OTSU)  # Thresholding the image
+    img_bin = 255-img_bin  # Invert the image
+
+    # Defining a kernel length
+    kernel_length = np.array(img).shape[1]//40
+     
+    # A verticle kernel of (1 X kernel_length), which will detect all the verticle lines from the image.
+    verticle_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, kernel_length))
+    # A horizontal kernel of (kernel_length X 1), which will help to detect all the horizontal line from the image.
+    hori_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_length, 1))
+    # A kernel of (3 X 3) ones.
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+
+    folder = "focus_text_Images/"
+    # Morphological operation to detect verticle lines from an image
+    img_temp1 = cv2.erode(img_bin, verticle_kernel, iterations=1)
+    verticle_lines_img = cv2.dilate(img_temp1, verticle_kernel, iterations=1)
+    v_file_name = "v_" + filename_no_folder + ".jpg"
+    cv2.imwrite(folder + v_file_name, verticle_lines_img)
+
+    # Morphological operation to detect horizontal lines from an image
+    img_temp2 = cv2.erode(img_bin, hori_kernel, iterations=2)
+    horizontal_lines_img = cv2.dilate(img_temp2, hori_kernel, iterations=3)
+    h_file_name = "h_" + filename_no_folder + ".jpg"
+    cv2.imwrite(folder + h_file_name, horizontal_lines_img)
+
+    # Weighting parameters, this will decide the quantity of an image to be added to make a new image.
+    alpha = 0.5
+    beta = 1.0 - alpha
+
+    # This function helps to add two image with specific weight parameter to get a third image as summation of two image.
+    img_final_bin = cv2.addWeighted(verticle_lines_img, alpha, horizontal_lines_img, beta, 0.0)
+    img_final_bin = cv2.erode(~img_final_bin, kernel, iterations=11)
+    (thresh, img_final_bin) = cv2.threshold(img_final_bin, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    f_file_name = "f_" + filename_no_folder + ".jpg"
+    cv2.imwrite(folder + f_file_name, img_final_bin)
+
+    # This is AND operation pixel by pixel
+    dst = cv2.bitwise_and(img_bin, img_final_bin)
+    r_file_name = "result_" + filename_no_folder + ".jpg"
+    cv2.imwrite(folder + r_file_name, dst)
+
+def processing(threadID, files):
+    for filename in files:
+        start_milliseconds = str(int(round(time.time() * 1000)))
+        file_path = input_folder + filename
+        box_extraction(file_path, output_folder);
+        end_milliseconds = str(int(round(time.time() * 1000)))
+        caculate_time_difference(start_milliseconds, end_milliseconds, filename)
+
+class myThread (threading.Thread):
+    def __init__(self, threadID, name, files, start_time):
+        threading.Thread.__init__(self)
+        self._stop = threading.Event()
+        self.threadID = threadID
+        self.name = name
+        self.files = files
+        self.start_time = start_time
+    def stop(self):
+        self._stop.set()
+
+    def run(self):
+        print("Starting:", self.name)
+        processing(self.threadID, self.files,)
+        self.stop()
+        end = str(int(round(time.time() * 1000)))
+        caculate_time_difference(self.start_time, end, 'total')
+
+def main(start_time):
+    stop_threads = False 
+    filenames = []
+    thread_list = []
+    count_thread = 5
+    for filename in os.listdir(input_folder):
+        filenames.append(filename)
+
+    mode = len(filenames) % (count_thread - 1)
+    step = len(filenames) / (count_thread - 1)
+
+    if len(filenames) < 5:
+        start_total = str(int(round(time.time() * 1000)))
+        for filename in os.listdir(input_folder):
+            start_milliseconds = str(int(round(time.time() * 1000)))
+            file_path = input_folder + filename
+            box_extraction(file_path, output_folder);
+            end_milliseconds = str(int(round(time.time() * 1000)))
+            # caculate_time_difference(start_milliseconds, end_milliseconds, filename)
+        end_total = str(int(round(time.time() * 1000)))
+        caculate_time_difference(start_total, end_total, "total")    
+    else:
+        for i in range(1, count_thread):
+            files = filenames[int(step)*(i-1) : int(step)*i]
+            # Create new threads
+            thread = myThread(i, "Thread_"+str(i), files, start_time)
+            thread_list.append(thread)
+
+        # Start new Threads
+        for thread in thread_list:
+            thread.start()
+
+        if mode != 0:
+        # Start mode Threads
+            files = filenames[(count_thread - 1)*int(step):]
+            thread1 = myThread(count_thread, "Thread_"+str(count_thread), files, start_time)
+            thread1.start()
+
+if __name__ == '__main__':
+    print("Reading image..")
+    start_time = str(int(round(time.time() * 1000)))
+    main(start_time)
