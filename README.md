@@ -8,7 +8,8 @@ Check the result of first method in "focus_text_Images"
 It was tested on Window and is using multi-threading on 2 stages to speed up.
   - Extract JPGs from pdf
   - Extract data from JPG
-
+Pretrained Tesseract model is used in this project.
+You can find the project that is used custom model by CNN on https://github.com/Supernova1024/OCR-PDF-to-CSV-Table-by-CNN-
 Please give me star if this project was helpful to your startup project. :)
 
 # Dependencies
@@ -39,8 +40,8 @@ Please give me star if this project was helpful to your startup project. :)
   python focus_border.py
   ``` 
   The result is stored in "focus_border_Images" folder
-  ![](https://github.com/topcoder20022/OCR-PDF-TABLE/blob/master/focus_border_img.jpg)
-  ![](https://github.com/topcoder20022/OCR-PDF-TABLE/blob/master/focus_border_images.png)
+  ![](https://github.com/Supernova1024/OCR-PDF-to-CSV-Table-by-Tesseract/blob/main/focus_border_img.jpg)
+  ![](https://github.com/Supernova1024/OCR-PDF-to-CSV-Table-by-Tesseract/blob/main/focus_border_images.png)
 
 - Extract boxes by text
   ```
@@ -48,7 +49,7 @@ Please give me star if this project was helpful to your startup project. :)
   ``` 
   The result is stored in "focus_text_Images" folder
   
-  ![](https://github.com/topcoder20022/OCR-PDF-TABLE/blob/master/focus_text_Images/result_16540011586530001-03.jpg)
+  ![](https://github.com/Supernova1024/OCR-PDF-to-CSV-Table-by-Tesseract/blob/main/focus_text_Images/result_16540011586530001-03.jpg)
 * You can get the final result by running only below command after running pdf_img.py
   ```
   python ocr_border.py
@@ -57,7 +58,7 @@ Please give me star if this project was helpful to your startup project. :)
   The results are stored in "output_img" folder and "table_1.csv" file.
 
 # Result Description
-  ![](https://github.com/topcoder20022/OCR-PDF-TABLE/blob/master/table_1.jpg)
+  ![](https://github.com/Supernova1024/OCR-PDF-to-CSV-Table-by-Tesseract/blob/main/table_1.jpg)
   In this project, I used the table that has 7 columns
   1, 4, and 5 columns can't be recognized by pytesseract.
   The boxes of these columns are stored in "output_img" folder as JPG and added their file name to csv file.
