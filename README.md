@@ -9,7 +9,7 @@ It was tested on Window and is using multi-threading on 2 stages to speed up.
   - Extract JPGs from pdf
   - Extract data from JPG
 Pretrained Tesseract model is used in this project.
-You can find the project that is used custom model by CNN on https://github.com/Supernova1024/OCR-PDF-to-CSV-Table-by-CNN-
+You can find the project that is used custom model by CNN on https://github.com/Supernova1024/OCR-PDF-to-CSV-Table-by-CNN
 Please give me star if this project was helpful to your startup project. :)
 
 # Dependencies
